@@ -1,6 +1,6 @@
 # 🎬 Emby Custom Integration for Home Assistant
 
-A comprehensive and feature-rich integration for Emby media servers in Home Assistant. Monitor your server activity, track recordings, view bandwidth usage, and much more—all with configurable sensors that give you complete control over your home media ecosystem.
+A comprehensive and feature-rich integration for Emby media servers in Home Assistant. Monitor your server activity, track recordings, view bandwidth usage, control playback, and much more—all with configurable sensors and media players that give you complete control over your home media ecosystem.
 
 ---
 
@@ -9,17 +9,8 @@ A comprehensive and feature-rich integration for Emby media servers in Home Assi
 - [Features](#-features)
 - [Installation](#-installation)
 - [Configuration](#-configuration)
+- [Media Player Entities](#-media-player-entities)
 - [Available Sensors](#-available-sensors)
-  - [Recording Sensor](#1-emby-recordings)
-  - [Active Streams Sensor](#2-emby-active-streams)
-  - [Multisession Users Sensor](#3-emby-multisession-users)
-  - [Bandwidth Usage Sensor](#4-emby-bandwidth-usage)
-  - [Transcoding Load Sensor](#5-emby-transcoding-load)
-  - [Server Stats Sensor](#6-emby-server-stats)
-  - [Library Stats Sensor](#7-emby-library-stats)
-  - [Latest Movies Sensor](#8-emby-latest-movies)
-  - [Latest Episodes Sensor](#9-emby-latest-episodes)
-  - [Upcoming Episodes Sensor](#10-emby-upcoming-episodes)
 - [Use Cases and Examples](#-use-cases-and-examples)
 - [Troubleshooting](#-troubleshooting)
 - [Contributing](#-contributing)
@@ -28,6 +19,7 @@ A comprehensive and feature-rich integration for Emby media servers in Home Assi
 
 ## ✨ Features
 
+- **Media player entities** for each active Emby session with playback control
 - **Real-time monitoring** of active streams, transcoding sessions, and bandwidth usage
 - **Live TV recording tracking** with active, scheduled, and series recording details
 - **Multi-session detection** for users watching on multiple devices simultaneously
@@ -86,6 +78,7 @@ After the initial setup, you can enable or disable individual sensors:
 5. Click **Submit** to save your changes
 
 **Available sensor options:**
+
 - Enable Recordings
 - Enable Active Streams
 - Enable Multisession Users
@@ -96,6 +89,153 @@ After the initial setup, you can enable or disable individual sensors:
 - Enable Latest Movies
 - Enable Latest Episodes
 - Enable Upcoming Episodes
+
+---
+
+## 🎮 Media Player Entities
+
+In addition to sensors, this integration creates **media player entities** for each active Emby session. These entities appear as `media_player.emby_*` and provide real-time playback control and detailed information about what's currently playing.
+
+### Entity Naming
+
+Media player entities are automatically created with the format:
+- `media_player.emby_<device>_<user>` (if user is present)
+- `media_player.emby_<device>` (if no user is present)
+
+**Example:** `media_player.emby_chrome_john` or `media_player.emby_roku_living_room`
+
+### Playback Controls
+
+Each media player entity supports the following controls:
+- **Play** - Resume playback
+- **Pause** - Pause playback
+- **Stop** - Stop playback
+- **Seek** - Jump to a specific position in the media
+
+### Common Attributes (All Media Types)
+
+These attributes are available for all media player entities, regardless of the media type:
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `app_name` | string | Client application name (e.g., "Emby Web", "Roku") |
+| `user` | string | Username of the person watching |
+| `user_img` | string | URL to the user's profile image |
+| `friendly_name` | string | Display name: "Device (User)" |
+| `custom_name` | string | Formatted as "User on Device" (without parentheticals) |
+| `playback_method` | string | "direct" or "transcoding" |
+| `playback_percent` | float | Percentage of media watched (0-100) |
+| `video_codec` | string | Video codec (e.g., "h264", "hevc") |
+| `video_resolution` | string | Video resolution (e.g., "1920x1080") |
+| `video_framerate` | float | Video framerate (e.g., 23.976) |
+| `video_bitrate` | string | Video bitrate (e.g., "5000kbps") |
+| `audio_codec` | string | Audio codec (e.g., "aac", "ac3") |
+| `audio_channels` | string | Audio channel configuration (e.g., "6 channels") |
+| `audio_bitrate` | string | Audio bitrate (e.g., "384kbps") |
+
+### Transcoding Attributes
+
+When `playback_method` is "transcoding", additional attributes are available:
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `transcode_video_codec` | string | Target video codec for transcoding |
+| `transcode_audio_codec` | string | Target audio codec for transcoding |
+| `transcode_bitrate` | string | Target bitrate for transcoding |
+
+---
+
+### Movie Attributes
+
+When watching a **movie**, the following additional attributes are available:
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `media_title` | string | Movie title |
+| `media_content_type` | string | Always "movie" |
+| `media_content_id` | string | Emby Item ID |
+| `media_duration` | float | Total runtime in seconds |
+| `media_position` | float | Current playback position in seconds |
+| `entity_picture` | string | URL to movie poster |
+
+**Example Use Case:**  
+Display currently playing movies on a dashboard with poster art and playback progress.
+
+```yaml
+type: custom:mini-media-player
+entity: media_player.emby_chrome_john
+artwork: full-cover
+```
+
+---
+
+### TV Show (Episode) Attributes
+
+When watching a **TV show episode**, the following additional attributes are available:
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `media_title` | string | Episode title |
+| `media_series_title` | string | TV series name |
+| `media_season` | int | Season number |
+| `media_episode` | int | Episode number |
+| `media_content_type` | string | Always "tvshow" |
+| `media_content_id` | string | Emby Item ID |
+| `media_duration` | float | Episode runtime in seconds |
+| `media_position` | float | Current playback position in seconds |
+| `entity_picture` | string | URL to episode thumbnail |
+
+**Example Use Case:**  
+Create a "Now Watching" card that shows series, season, and episode information.
+
+```yaml
+type: markdown
+content: >
+  **{{ state_attr('media_player.emby_chrome_john', 'media_series_title') }}**
+  
+  S{{ state_attr('media_player.emby_chrome_john', 'media_season') }}E{{ state_attr('media_player.emby_chrome_john', 'media_episode') }}
+  
+  {{ state_attr('media_player.emby_chrome_john', 'media_title') }}
+```
+
+---
+
+### Live TV (Channel) Attributes
+
+When watching **Live TV**, the following additional attributes are available:
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `media_content_type` | string | Always "tvchannel" |
+| `channel_name` | string | Channel name (e.g., "HBO", "ESPN") |
+| `channel_number` | string | Channel number (e.g., "209") |
+| `channel_id` | string | Emby channel ID |
+| `program_id` | string | Current program/show ID |
+| `program_series` | string | Series name of the current program |
+| `program_overview` | string | Description/synopsis of the current program |
+| `program_start` | string | Program start time (ISO format) |
+| `program_end` | string | Program end time (ISO format) |
+| `program_image_url` | string | URL to program thumbnail/poster |
+| `program_source` | string | How the program info was retrieved ("program_id", "channel_search", or "none") |
+| `media_duration` | float | Program duration in seconds (calculated from start/end times) |
+| `media_position` | float | Current position in the program in seconds |
+
+**Note:** For Live TV, `media_title` is hidden. Use the `channel_name` attribute instead for display purposes.
+
+**Example Use Case:**  
+Display Live TV information with channel number, program name, and time remaining.
+
+```yaml
+type: markdown
+content: >
+  **Channel {{ state_attr('media_player.emby_roku_living_room', 'channel_number') }}**: {{ state_attr('media_player.emby_roku_living_room', 'channel_name') }}
+  
+  Now Playing: {{ state_attr('media_player.emby_roku_living_room', 'program_series') }}
+  
+  {{ state_attr('media_player.emby_roku_living_room', 'program_overview') }}
+  
+  Ends at: {{ state_attr('media_player.emby_roku_living_room', 'program_end')[:19] }}
+```
 
 ---
 
@@ -513,6 +653,7 @@ cards:
 ### Automation Examples
 
 **Notify when server load is high:**
+
 ```yaml
 automation:
   - alias: "Emby Server High Load"
@@ -528,6 +669,7 @@ automation:
 ```
 
 **Pause transcoding-heavy streams during peak hours:**
+
 ```yaml
 automation:
   - alias: "Reduce Transcoding Load"
