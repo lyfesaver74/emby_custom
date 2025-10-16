@@ -317,7 +317,7 @@ class EmbyClient:
                         result["scheduled_recordings"].append(recording_info)
 
         except Exception as err:
-            _LOGGER.error("Error fetching recordings: %r", err)
+            _LOGGER.debug("Error fetching recordings: %s", err)
 
         # Get series recordings
         try:
@@ -334,7 +334,7 @@ class EmbyClient:
                     }
                     result["series_recordings"].append(series_info)
         except Exception as err:
-            _LOGGER.error("Error fetching series timers: %r", err)
+            _LOGGER.debug("Error fetching series timers: %s", err)
 
         return result
 

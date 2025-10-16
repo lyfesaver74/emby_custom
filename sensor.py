@@ -498,7 +498,13 @@ class EmbyServerStatsSensor(EmbyBaseSensor):
 
     async def async_update(self) -> None:
         """Update server information."""
-        self._server_info = await self._client.async_get_server_stats()
+        try:
+            self._server_info = await self._client.async_get_server_stats()
+        except Exception as err:
+            _LOGGER.warning("Failed to update server stats: %s", err)
+            # Keep previous data if available
+            if self._server_info is None:
+                self._server_info = {}
 
     @property
     def native_value(self) -> int | None:
@@ -563,7 +569,13 @@ class EmbyLibraryStatsSensor(EmbyBaseSensor):
 
     async def async_update(self) -> None:
         """Update library information."""
-        self._library_info = await self._client.async_get_library_stats()
+        try:
+            self._library_info = await self._client.async_get_library_stats()
+        except Exception as err:
+            _LOGGER.warning("Failed to update library stats: %s", err)
+            # Keep previous data if available
+            if self._library_info is None:
+                self._library_info = {}
 
     @property
     def native_value(self) -> int | None:

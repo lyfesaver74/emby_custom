@@ -2,17 +2,20 @@ from __future__ import annotations
 
 from datetime import timedelta
 from typing import Any
+import logging
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .api import EmbyClient, EmbyAuthError
 
+_LOGGER = logging.getLogger(__name__)
+
 class EmbyUpdateCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
     def __init__(self, hass: HomeAssistant, client: EmbyClient) -> None:
         super().__init__(
             hass,
-            logger=None,
+            logger=_LOGGER,
             name="Emby sessions",
             update_interval=timedelta(seconds=20),
         )
