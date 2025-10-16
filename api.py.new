@@ -1,0 +1,74 @@
+    async def async_get_recordings(self) -> dict:
+        """Get recording status and scheduled recordings."""
+        uid = await self.async_get_user_id()
+        user_q = f"&UserId={uid}" if uid else ""
+        _LOGGER.warning("Starting recording fetch with user ID: %s", uid)
+        
+        result = {
+            "active_recordings": [],
+            "scheduled_recordings": [],
+            "series_recordings": []
+        }
+        
+        # 1. Try direct recording status endpoint
+        try:
+            live = await self._get("/LiveTv/LiveRecordings")
+            _LOGGER.warning("Live recordings response: %s", live)
+            if isinstance(live, list):
+                result["active_recordings"].extend(live)
+        except Exception as err:
+            _LOGGER.error("Failed to get live recordings: %r", err)
+
+        # 2. Try timers endpoint for active recordings
+        try:
+            timers = await self._get(f"/LiveTv/Timers?{user_q}&IsRecording=true")
+            _LOGGER.warning("Active timers response: %s", timers)
+            if isinstance(timers, dict) and isinstance(timers.get("Items"), list):
+                result["active_recordings"].extend(timers["Items"])
+        except Exception as err:
+            _LOGGER.error("Failed to get active timers: %r", err)
+
+        # 3. Try programs endpoint for currently recording shows
+        try:
+            programs = await self._get(f"/LiveTv/Programs?IsAiring=true&IsRecording=true&{user_q}")
+            _LOGGER.warning("Recording programs response: %s", programs)
+            if isinstance(programs, dict) and isinstance(programs.get("Items"), list):
+                result["active_recordings"].extend(programs["Items"])
+        except Exception as err:
+            _LOGGER.error("Failed to get recording programs: %r", err)
+
+        # 4. Get scheduled recordings
+        try:
+            scheduled = await self._get(f"/LiveTv/Timers?{user_q}&IsRecording=false")
+            _LOGGER.warning("Scheduled recordings response: %s", scheduled)
+            if isinstance(scheduled, dict) and isinstance(scheduled.get("Items"), list):
+                result["scheduled_recordings"] = scheduled["Items"]
+        except Exception as err:
+            _LOGGER.error("Failed to get scheduled recordings: %r", err)
+
+        # 5. Get series recordings
+        try:
+            series = await self._get(f"/LiveTv/SeriesTimers?{user_q}")
+            _LOGGER.warning("Series recordings response: %s", series)
+            if isinstance(series, dict) and isinstance(series.get("Items"), list):
+                result["series_recordings"] = series["Items"]
+        except Exception as err:
+            _LOGGER.error("Failed to get series recordings: %r", err)
+
+        # Remove duplicates from active recordings
+        seen = set()
+        unique_active = []
+        for rec in result["active_recordings"]:
+            if isinstance(rec, dict):
+                rec_id = rec.get("Id")
+                if rec_id and rec_id not in seen:
+                    seen.add(rec_id)
+                    unique_active.append(rec)
+        result["active_recordings"] = unique_active
+
+        _LOGGER.warning("Final recording counts - Active: %d, Scheduled: %d, Series: %d",
+                     len(result["active_recordings"]),
+                     len(result["scheduled_recordings"]),
+                     len(result["series_recordings"]))
+        
+        return result

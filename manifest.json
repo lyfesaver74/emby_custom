@@ -1,0 +1,9 @@
+{
+    "domain": "emby_custom",
+    "name": "Emby (Custom)",
+    "version": "0.1.3",
+    "config_flow": true,
+    "documentation": "https://www.home-assistant.io/integrations/emby/",
+    "requirements": [],
+    "codeowners": ["@lyfesaver74"]
+    }
